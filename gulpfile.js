@@ -7,7 +7,7 @@ if (process.argv.indexOf('--dev') != -1)
 global.devPath = 'dev';
 global.distPath = 'dist';
 
-global.serverPort = 8001;
+global.serverPort = 8088;
 
 var gulp = require('gulp');
 var webserver = require('gulp-webserver');
@@ -15,7 +15,7 @@ gulp.task('sass',require('./gulp-tasks/sass'));
 gulp.task('scripts',require('./gulp-tasks/scripts'));
 gulp.task('images',require('./gulp-tasks/images'));
 gulp.task('html',require('./gulp-tasks/html'));
-gulp.task('autoguide',require('./gulp-tasks/autoguide'));
+// gulp.task('autoguide',require('./gulp-tasks/autoguide'));
 
 // start a server for easy dev
 gulp.task('server',require('./gulp-tasks/webserver'));
@@ -23,8 +23,8 @@ gulp.task('server',require('./gulp-tasks/webserver'));
 // watch
 gulp.task('watch',['build'], function () {
   global.devMode = true;
-  gulp.watch([global.devPath + '/scss/**/*'],['sass','autoguide']);
-  gulp.watch([global.devPath + '/js/**/*'],['scripts','autoguide']);
+  gulp.watch([global.devPath + '/scss/**/*'],['sass']);
+  gulp.watch([global.devPath + '/js/**/*'],['scripts']);
   gulp.watch([global.devPath + '/images/**/*'],['images']);
   gulp.watch([global.devPath + '/**/*.html'],['html']);
 });
@@ -32,4 +32,4 @@ gulp.task('watch',['build'], function () {
 gulp.task('dev',['watch'],require('./gulp-tasks/webserver'));
 
 // build
-gulp.task('build',['sass','scripts','images','html','autoguide']);
+gulp.task('build',['sass','scripts','images','html']);

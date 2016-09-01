@@ -9,7 +9,6 @@
   "author": "Glenn Martin",
   "license": "ISC",
   "devDependencies": {
-    "autoguide": "^0.1.2",
     "browserify": "^13.0.1",
     "gulp": "^3.9.1",
     "gulp-autoprefixer": "^3.1.0",

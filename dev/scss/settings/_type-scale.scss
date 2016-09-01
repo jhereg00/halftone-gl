@@ -11,6 +11,14 @@
  *    @include body;
  *    @include small;
  */
+@mixin super () {
+  font-size: pxToRem(56);
+  line-height: $vr * 3;
+  @include mq ($bp-medium) {
+    font-size: pxToRem(108);
+    line-height: $vr * 6;
+  }
+}
 @mixin h1 () {
   font-size: pxToRem(42);
   line-height: $vr * 3;

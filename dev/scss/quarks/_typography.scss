@@ -11,20 +11,24 @@
  *   <p>Unde quo, minus eaque eligendi cum tempore, nulla, accusamus est labore tenetur modi eveniet obcaecati voluptas eius vitae vero dolorem nobis culpa nihil. Itaque saepe suscipit odit fugit quidem culpa.</p>
  *   <p>Accusantium recusandae, dignissimos rerum quaerat voluptatem quis itaque deleniti sequi autem explicabo dolore delectus, doloremque eos. Accusantium<sup>sup</sup> recusandae<sub>sub</sub> eius, debitis voluptates adipisci aspernatur rem voluptatum, delectus, tempore accusantium dolorum cumque error.</p>
  */
+.super {
+  @include super;
+  @include font-secondary;
+  position: absolute;
+  left: $wr * 2;
+  bottom: $vr * 2;
+}
 h1,.h1 {
   @include h1;
   margin: $vr * 4 auto $vr * 3;
-  color: $brand-primary;
 }
 h2,.h2 {
   @include h2;
   margin: $vr * 3 auto $vr * 2;
-  color: $brand-primary;
 }
 h3,.h3 {
   @include h3;
   margin: $vr * 2 auto $vr;
-  color: $brand-primary;
 }
 h4,.h4 {
   @include h4;
