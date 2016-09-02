@@ -11,12 +11,14 @@ uniform vec2 uResolution;
 uniform float uMinSize;
 uniform float uMaxSize;
 uniform sampler2D uImage;
+uniform int uTexSize;
 
 // varyings
 varying vec3 vPosition;
+varying vec3 vColor;
 
 // constants
-const int sizeToAverage = 16;
+const int sizeToAverage = 2;
 
 // helpers
 void colorToGrayscale (in vec3 color, out float luminosity) {
@@ -29,15 +31,15 @@ void squareToGrayscale (in vec2 middle, in sampler2D tex, out vec3 color, out fl
   color = vec3(0.0);
 
   int count = 0;
-  for (int y = sizeToAverage / -2; y <= sizeToAverage / 2; ++y) {
-    for (int x = sizeToAverage / -2; x <= sizeToAverage / 2; ++x) {
+  for (int y = -sizeToAverage; y < sizeToAverage; ++y) {
+    for (int x = -sizeToAverage; x < sizeToAverage; ++x) {
       vec2 offset = middle + vec2(float(x) * uMaxSize * onePixel.x, float(y) * uMaxSize * onePixel.y);
 
       if (offset.x >= 0.0 && offset.x <= 1.0 &&
           offset.y >= 0.0 && offset.y <= 1.0) {
         color += texture2D(tex, offset).rgb;
+        ++count;
       }
-      count++;
     }
   }
   color /= float(count);
@@ -49,7 +51,8 @@ void main() {
   gl_Position = vec4(aPosition / uResolution * 2.0 - 1.0, 0., 1.);
   float luminosity;
   vec3 color;
-  squareToGrayscale(aPosition / uResolution, uImage, color, luminosity);
+  squareToGrayscale(vec2((aPosition / uResolution).x, 1.0 - (aPosition / uResolution).y), uImage, color, luminosity);
   gl_PointSize = uMaxSize * luminosity;
   vPosition = gl_Position.xyz;
+  vColor = vec3(luminosity);
 }

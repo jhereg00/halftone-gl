@@ -19,8 +19,8 @@ var GLBuffer = require('lib/webgl/GLBuffer');
 
 // settings
 var MIN_SIZE = 0;
-var MAX_SIZE = 16; // diameter
-var SPACING = 16;
+var MAX_SIZE = 8; // diameter
+var SPACING = 8;
 var COLOR = [
   parseInt('04',16) / 255,
   parseInt('6C',16) / 255,
@@ -29,6 +29,7 @@ var COLOR = [
 
 // classes
 var HalftoneGL = function (imageSrc) {
+  this.imageSrc = imageSrc;
   // make a canvas
   this.canvas = document.createElement('canvas');
   this.canvas.setAttribute('class','halftone-gl');
@@ -52,18 +53,19 @@ var HalftoneGL = function (imageSrc) {
     var xPerc = e.clientX / windowSize.width();
     var yPerc = e.clientY / windowSize.height();
     if (_this.texCan) {
-      var ctx = _this.texCan.getContext('2d');
-      var cxlg = ctx.createRadialGradient(
-        // outer
-        _this.texCan.width / 2, _this.texCan.height / 2, Math.max(_this.texCan.width, _this.texCan.height) / 2,
-        // inner
-        xPerc * _this.texCan.width, _this.texCan.height - yPerc * _this.texCan.height, 200
-      );
-      cxlg.addColorStop(1,"white");
-      cxlg.addColorStop(0,"black");
-      // cxlg.addColorStop(.66,"#07A961");
-      ctx.fillStyle = cxlg;
-      ctx.fillRect(0,0,_this.texCan.width,_this.texCan.height);
+      // var ctx = _this.texCan.getContext('2d');
+      // var cxlg = ctx.createRadialGradient(
+      //   // outer
+      //   _this.texCan.width / 2, _this.texCan.height / 2, Math.max(_this.texCan.width, _this.texCan.height) / 2,
+      //   // inner
+      //   xPerc * _this.texCan.width, _this.texCan.height - yPerc * _this.texCan.height, 200
+      // );
+      // cxlg.addColorStop(1,"white");
+      // cxlg.addColorStop(0,"black");
+      // // cxlg.addColorStop(.66,"#07A961");
+      // ctx.fillStyle = cxlg;
+      // ctx.fillRect(0,0,_this.texCan.width,_this.texCan.height);
+      _this._updateTexture();
       _this.draw();
     }
   });
@@ -105,8 +107,8 @@ HalftoneGL.prototype = {
   },
   _loadImage: function () {
     this.texCan = document.createElement('canvas');
-    this.texCan.width = 1024;
-    this.texCan.height = 1024;
+    this.texCan.width = 2048;
+    this.texCan.height = 2048;
     var ctx = this.texCan.getContext('2d');
     var cxlg=ctx.createLinearGradient(0, 0, this.texCan.width, 0);
     cxlg.addColorStop(0, '#f00');
@@ -122,6 +124,35 @@ HalftoneGL.prototype = {
     this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.texCan);
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR);
     this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR);
+
+    this.image = new Image();
+    this.image.src = this.imageSrc;
+    this._updateTexture();
+  },
+  /**
+   *  pass a canvas fill style
+   */
+  _updateTexture: function (overlay) {
+    // map resolution rectangle onto image
+    var resScale = Math.min(
+      this.image.width / this.resolution[0],
+      this.image.height / this.resolution[1]
+    );
+    var resX = (this.image.width - (this.resolution[0] * resScale)) / 2;
+    var resY = (this.image.height - (this.resolution[1] * resScale)) / 2;
+    var ctx = this.texCan.getContext('2d');
+    // draw mapped area of image to square canvas
+    ctx.drawImage(
+      this.image,
+      resX,
+      resY,
+      resScale * this.resolution[0],
+      resScale * this.resolution[1],
+      0,
+      0,
+      this.texCan.width,
+      this.texCan.height
+    );
   },
   _initPrograms: function () {
     var _this = this;
@@ -143,7 +174,8 @@ HalftoneGL.prototype = {
           'uMinSize',
           'uMaxSize',
           'uColor',
-          'uImage'
+          'uImage',
+          'uTexSize'
         ]
       )
     }
@@ -193,6 +225,7 @@ HalftoneGL.prototype = {
     this.gl.uniform1f(program.uniforms.uMinSize, MIN_SIZE);
     this.gl.uniform1f(program.uniforms.uMaxSize, MAX_SIZE);
     this.gl.uniform4fv(program.uniforms.uColor, new Float32Array(COLOR));
+    this.gl.uniform1i(program.uniforms.uTexSize, this.texCan.width);
 
     this.gl.activeTexture(this.gl.TEXTURE0);
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
