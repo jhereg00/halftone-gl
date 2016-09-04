@@ -12,6 +12,8 @@ uniform float uMinSize;
 uniform float uMaxSize;
 uniform sampler2D uImage;
 uniform int uTexSize;
+uniform float uZero; // luminosity to treat as 0
+uniform float uOne; // luminosity to treat as 1
 
 // varyings
 varying vec3 vPosition;
@@ -52,6 +54,8 @@ void main() {
   float luminosity;
   vec3 color;
   squareToGrayscale(vec2((aPosition / uResolution).x, 1.0 - (aPosition / uResolution).y), uImage, color, luminosity);
+	// rebalance luminosity to the passed scale
+	luminosity = (luminosity - uZero) / (uOne - uZero);
   gl_PointSize = uMaxSize * luminosity;
   vPosition = gl_Position.xyz;
   vColor = vec3(luminosity);

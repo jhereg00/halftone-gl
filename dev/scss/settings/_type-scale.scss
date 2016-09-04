@@ -15,8 +15,10 @@
   font-size: pxToRem(56);
   line-height: $vr * 3;
   @include mq ($bp-medium) {
-    font-size: pxToRem(108);
-    line-height: $vr * 6;
+    // font-size: pxToRem(108);
+    // line-height: $vr * 6;
+		font-size: 20vh;
+		line-height: .83em;
   }
 }
 @mixin h1 () {
