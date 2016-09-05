@@ -99,7 +99,7 @@ AjaxRequest.prototype = {
   addStateListener: function (stateIndex, fn) {
     // call immediately if already at that state
     if (this.xhttp.readyState === stateIndex) {
-      fn(xhttp.responseText, xhttp);
+      fn(this.xhttp.responseText, this.xhttp);
     }
     this.stateFns[stateIndex].push(fn);
   },

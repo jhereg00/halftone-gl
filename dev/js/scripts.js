@@ -6,17 +6,14 @@
  */
 
 // temp way of doing this
-var HalftoneGL = require('app/HalftoneGL');
+window.HalftoneGL = require('app/HalftoneGL');
 var container = document.querySelector('.container-global');
 window.ht = new HalftoneGL('images/leaf-on-the-wind-6col.jpg');
-window.ht.prependTo(container);
+window.ht.prependTo(container).setSize().drawLayer(0);
 
-var ht2 = new HalftoneGL('images/stillstrong.jpg');
-ht2.prependTo(container);
+window.ht2 = new HalftoneGL('images/stillstrong.jpg');
+ht2.prependTo(container).setSize().drawLayer(0);
 
-var ht3 = new HalftoneGL('images/bird.jpg');
-ht3.prependTo(container);
-
-ht.setResolution(window.innerWidth / 3, window.innerHeight);
-ht2.setResolution(window.innerWidth / 3, window.innerHeight);
-ht3.setResolution(window.innerWidth / 3, window.innerHeight);
+// ht.setResolution(window.innerWidth / 3, window.innerHeight);
+// ht2.setResolution(window.innerWidth / 3, window.innerHeight);
+// ht3.setResolution(window.innerWidth / 3, window.innerHeight);

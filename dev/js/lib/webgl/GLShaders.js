@@ -7,7 +7,9 @@ var AjaxRequest = require('lib/AjaxRequest');
 // settings
 
 // storage
-var loadedShaders = {};
+var shaderRequests = {};
+var glContexts = [];
+var loadedShaders = [];
 
 // important functions
 /***
@@ -20,9 +22,13 @@ var loadedShaders = {};
  *  @param {boolean} bustCache - whether to add a cache busting param
  */
 var loadFileContents = function (path, cb, bustCache) {
-  return new AjaxRequest (bustCache ? path + '?cache=' + new Date().getTime() : path, {
-    complete: cb
-  });
+  if (!shaderRequests[path])
+	 	shaderRequests[path] = new AjaxRequest (bustCache ? path + '?cache=' + new Date().getTime() : path, {
+		    complete: cb
+		  });
+	else
+		shaderRequests[path].addStateListener(AjaxRequest.readyState.DONE, cb);
+	return shaderRequests[path];
 }
 
 /***
@@ -37,6 +43,13 @@ var loadFileContents = function (path, cb, bustCache) {
  *  @param {function} callback
  */
 var loadAndInitShader = function (gl, type, name, path, cb) {
+	// establish a place to save the shaders
+	var index = glContexts.indexOf(gl);
+	if (index === -1) {
+		index = glContexts.length;
+		glContexts.push(gl);
+		loadedShaders[index] = {};
+	}
   return loadFileContents (path, function (responseText, xhttp) {
     if (/^(2|3)/.test(xhttp.status.toString()) && responseText) {
       // got something
@@ -47,12 +60,13 @@ var loadAndInitShader = function (gl, type, name, path, cb) {
       if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
         console.error("An error occurred compiling the shaders (" + name + "): \n" + gl.getShaderInfoLog(shader));
       }
-      loadedShaders[name] = shader;
+      loadedShaders[index][name] = shader;
       if (cb && typeof cb === 'function')
         cb(shader);
     }
     else if (cb && typeof cb === 'function') {
       console.error("An error occurred loading the shaders: " + name);
+      loadedShaders[index][name] = null;
       cb(null);
     }
   });
@@ -75,8 +89,10 @@ var loadAll = function (gl, toLoad, cb) {
     if (!shader)
       success = false;
 
-    for (var i = 0, len = requests.length; i < len; i++) {
-      if (requests[i].getReadyState() !== AjaxRequest.readyState.DONE) {
+		var index = glContexts.indexOf(gl);
+    for (var i = 0, len = toLoad.length; i < len; i++) {
+			// can use === undefined because we set failures to null
+      if (loadedShaders[index][toLoad[i][1]] === undefined) {
         return false;
       }
     }
@@ -97,10 +113,12 @@ var loadAll = function (gl, toLoad, cb) {
  *
  *  gets an already loaded shader
  *
+ *	@param {WebGLContext} gl
  *  @param {string} name
  */
-var getShader = function (name) {
-  return loadedShaders[name];
+var getShader = function (gl, name) {
+	var index = glContexts.indexOf(gl);
+  return loadedShaders[index][name];
 }
 
 module.exports = {

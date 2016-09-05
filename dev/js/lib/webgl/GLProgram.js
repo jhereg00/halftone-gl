@@ -7,6 +7,7 @@
 
 // storage
 var GLPrograms = {};
+var activeProgram;
 
 // classes
 /***
@@ -32,7 +33,7 @@ var GLProgram = function (name, gl, shaders) {
   });
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-	  console.error("Unable to initialize the shader program: " + gl.getProgramInfoLog(shader));
+	  console.error("Unable to initialize the shader program: " + gl.getProgramInfoLog(program));
     return null;
 	}
   this.gl = gl;
@@ -57,6 +58,7 @@ GLProgram.prototype = {
     for (var i = 0, len = this.uniformNames.length; i < len; i++) {
       this.uniforms[this.uniformNames[i]] = this.gl.getUniformLocation(this.program, this.uniformNames[i]);
     }
+		activeProgram = this;
     return this;
   },
   addAttribute: function (name) {
@@ -97,6 +99,13 @@ GLProgram.create = function createProgramFromShaders (name, gl, shaders, attribu
  */
 GLProgram.get = function getGLProgramByName (name) {
   return GLPrograms[name] || null;
+}
+/**
+ *	getActiveProgram
+ *	@returns {GLProgram} or undefined
+ */
+GLProgram.getActiveProgram = function getActiveProgram () {
+	return activeProgram;
 }
 
 module.exports = GLProgram;
