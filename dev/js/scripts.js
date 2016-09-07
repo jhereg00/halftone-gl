@@ -9,11 +9,23 @@
 window.HalftoneGL = require('app/HalftoneGL');
 var container = document.querySelector('.container-global');
 window.ht = new HalftoneGL('images/leaf-on-the-wind-6col.jpg');
-window.ht.prependTo(container).setSize().drawLayer(0);
 
-window.ht2 = new HalftoneGL('images/stillstrong.jpg');
-ht2.prependTo(container).setSize().drawLayer(0);
+window.hts = [
+	ht.prependTo(container),
+	new HalftoneGL('images/stillstrong.jpg').prependTo(container),
+	new HalftoneGL('images/dotsize-goalie.jpg').prependTo(container),
+	new HalftoneGL('images/dotsize-musician.jpg').prependTo(container),
+	new HalftoneGL('images/bird.jpg').prependTo(container)
+]
+var time = 6000;
 
-// ht.setResolution(window.innerWidth / 3, window.innerHeight);
-// ht2.setResolution(window.innerWidth / 3, window.innerHeight);
-// ht3.setResolution(window.innerWidth / 3, window.innerHeight);
+ht.animIn(time);
+var active = 0;
+document.body.addEventListener('click', function (e) {
+	e.preventDefault();
+	hts[active].animOut(time);
+	window.setTimeout(function () {
+		active = (active + 1) % hts.length;
+		hts[active].animIn(time);
+	}, time / 4);
+})
