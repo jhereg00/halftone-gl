@@ -40,9 +40,12 @@ var GLProgram = require('lib/webgl/GLProgram');
 var GLBuffer = require('lib/webgl/GLBuffer');
 var GLTexture2D = require('lib/webgl/GLTexture2D');
 
+var AnimatedValue = require('lib/AnimatedValue');
+var eases = require('lib/eases');
+
 // settings
 var MIN_SIZE = 0;
-var MAX_SIZE = 8;
+var MAX_SIZE = 16;
 var SPACING = MAX_SIZE;
 var LAYER_COLORS = [
 	'#011c1f',
@@ -101,8 +104,12 @@ setLayerColors(LAYER_COLORS);
  *	@method draw()
  *		@param {GLTexture2D, optional} image - image to bind to uImage, but won't
  *			do anything if undefined (so you can bind the image just once for all layers)
- *	@method animIn()
- *		@param {int} time in ms
+ *	@method setSize() - needed for sizing the mask properly
+ *		@param {int} x
+ *		@param {int} y
+ *	@method setFade()
+ *		@param {float} black offset
+ *		@param {float} white offset
  *	@prop {canvas} mask
  */
 var HalftoneLayer = function (parent, sprite, depths) {
@@ -110,11 +117,14 @@ var HalftoneLayer = function (parent, sprite, depths) {
 	this.gl = parent.gl;
 	this.sprite = new GLTexture2D(this.gl, sprite);
 	this.depths = depths;
+
 	this.mask = document.createElement('canvas');
-	this.mask.width = this.mask.height = 2048;
+	this.mask.width = this.mask.height = 2;
 	var ctx = this.mask.getContext('2d');
 	ctx.fillStyle = "white";
-	ctx.fillRect(0,0,2048,2048);
+	ctx.fillRect(0,0,2,2);
+	// temp texture, should be replaced when sizing is done
+	this.maskTexture = new GLTexture2D(this.gl, this.mask);
 }
 HalftoneLayer.prototype = {
 	draw: function (image) {
@@ -132,11 +142,49 @@ HalftoneLayer.prototype = {
 		// activate sprite
 		this.sprite.setActive(this.gl.TEXTURE0);
 		this.gl.uniform1i(program.uniforms.uPointSprite, 0);
+		// mask
+		this.maskTexture.setActive(this.gl.TEXTURE2);
+		this.maskTexture.update();
+		this.gl.uniform1i(program.uniforms.uMask, 2);
 
 		this.gl.drawArrays(this.gl.POINTS, 0, this.parent.points.length / 2);
 	},
-	animIn: function (time) {
-
+	setFade: function (black, white) {
+		var ctx = this.mask.getContext('2d');
+		var size = Math.max (this.mask.width, this.mask.height);
+		var grad = ctx.createLinearGradient(0,0,size,size);
+		var blackColor = '#000';
+		var whiteColor = '#fff';
+		// function to determine a color for a truncated stop
+		function getCutoffColor (black, white) {
+			var range = black - white;
+			var perc = 1;
+			perc = (Math.min(1, Math.max(0, black)) - (Math.min(1, Math.max(0, white)))) / range;
+			// invert percentage if black is the one out of bounds
+			if (black < 0 || black > 1)
+				perc = 1 - perc;
+			var val = Math.round(perc * 255);
+			return 'rgba(' + val + ',' + val + ',' + val + ',1)';
+		}
+		// can't add color stop < 0 or > 1, so normalize
+		if (black < 0 || black > 1) {
+			blackColor = getCutoffColor (black, white);
+		}
+		if (white < 0 || white > 1) {
+			whiteColor = getCutoffColor (black, white);
+		}
+		grad.addColorStop(Math.max(0, Math.min(1, black)), blackColor);
+		grad.addColorStop(Math.max(0, Math.min(1, white)), whiteColor);
+		ctx.fillStyle = grad;
+		ctx.fillRect(0,0,size,size);
+	},
+	setSize: function (x, y) {
+		this.mask.width = x;
+		this.mask.height = y;
+		var ctx = this.mask.getContext('2d');
+		ctx.fillStyle = "white";
+		ctx.fillRect(0,0,x,y);
+		this.maskTexture = new GLTexture2D(this.gl, this.mask);
 	}
 }
 
@@ -196,6 +244,10 @@ HalftoneGL.prototype = {
     this.gl.viewport(0, 0, this.resolution[0], this.resolution[1]);
 		this._updateImageTexture();
 		this._makePoints();
+
+		for (var i = 0, len = this.layers.length; i < len; i++) {
+			this.layers[i].setSize(this.resolution[0], this.resolution[1]);
+		}
 		return this;
 	},
 	// sets what image to show
@@ -230,10 +282,57 @@ HalftoneGL.prototype = {
 			this.layers[layer].draw(this.imageTexture);
 		}
 	},
+	// animates layers in
+	animIn: function (duration) {
+		// set some animatable values
+		var black = new AnimatedValue([
+			{frame: 0, value: 1},
+			{frame: 1, value: -.7}
+		]);
+		var white = new AnimatedValue([
+			{frame: 0, value: 1.7},
+			{frame: 1, value: 0}
+		]);
+		this._doAnim(black, white, duration);
+	},
+	// animates layers out
+	animOut: function (duration) {
+		// set some animatable values
+		var white = new AnimatedValue([
+			{frame: 0, value: 1},
+			{frame: 1, value: -.7}
+		]);
+		var black = new AnimatedValue([
+			{frame: 0, value: 1.7},
+			{frame: 1, value: 0}
+		]);
+		this._doAnim(black, white, duration, true);
+	},
 	//////////
 	// "internal" functions (obviously still callable outside of class, but not
 	// intended to be)
 	//////////
+	_doAnim: function (black, white, duration, lightFirst) {
+		var startTime = new Date().getTime();
+		var _this = this;
+		(function doAnimLoop () {
+			var deltaTime = new Date().getTime() - startTime;
+			var timePerc = deltaTime / duration;
+			for (var i = 0, len = _this.layers.length; i < len; i++) {
+				if (!lightFirst)
+					var layerPerc = (timePerc - (.2 * i)) / (1 - (.2 * i));
+				else
+					var layerPerc = (timePerc - (.2 * (len - i - 1))) / (1 - (.2 * (len - i - 1)));
+				_this.layers[i].setFade(
+					black.get(layerPerc),
+					white.get(layerPerc)
+				)
+			}
+			_this.draw();
+			if (timePerc < 1)
+				requestAnimationFrame(doAnimLoop);
+		})();
+	},
 	_makeLayers: function () {
 		this.layers = [];
 		for (var i = 0, len = layerSprites.length; i < len; i++) {
@@ -274,8 +373,8 @@ HalftoneGL.prototype = {
 				// attributes
         ['aPosition'],
 				// uniforms
-        [ 'uResolution',		'uMinSize',		'uMaxSize',		'uDepths',
-					'uImage',					'uPointSprite']
+        [ 'uResolution',		'uMinSize',			'uMaxSize',		'uDepths',
+					'uImage',					'uPointSprite',	'uMask']
       )
     }
 		this._programsReady = true;

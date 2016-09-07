@@ -11,6 +11,7 @@ uniform vec2 uResolution;
 uniform float uMinSize;
 uniform float uMaxSize;
 uniform sampler2D uImage;
+uniform sampler2D uMask;
 uniform vec2 uDepths; // luminosity to treat as 0 and 1, respectively
 
 // varyings
@@ -24,10 +25,10 @@ void colorToGrayscale (in vec3 color, out float luminosity) {
   luminosity = (0.21 * color.r) + (0.72 * color.g) + (0.07 * color.b);
 }
 
-void squareToGrayscale (in vec2 middle, in sampler2D tex, out vec3 color, out float luminosity) {
+void squareToGrayscale (in vec2 middle, in sampler2D tex,out float luminosity) {
   vec2 onePixel = vec2(1.0) / uResolution;
   // set color to black, so we can add to it then divide to get the average
-  color = vec3(0.0);
+  vec3 color = vec3(0.0);
 
   int count = 0;
   for (int y = -sizeToAverage; y < sizeToAverage; ++y) {
@@ -48,11 +49,12 @@ void squareToGrayscale (in vec2 middle, in sampler2D tex, out vec3 color, out fl
 // main
 void main() {
   gl_Position = vec4(aPosition / uResolution * 2.0 - 1.0, 0., 1.);
-  float luminosity;
-  vec3 color;
-  squareToGrayscale(vec2((aPosition / uResolution).x, 1.0 - (aPosition / uResolution).y), uImage, color, luminosity);
+	float luminosity;
+	float mask;
+  squareToGrayscale(vec2((aPosition / uResolution).x, 1.0 - (aPosition / uResolution).y), uImage, luminosity);
+  squareToGrayscale(vec2((aPosition / uResolution).x, 1.0 - (aPosition / uResolution).y), uMask, mask);
 	// rebalance luminosity to the passed scale
 	luminosity = (luminosity - uDepths[0]) / (uDepths[1] - uDepths[0]);
-  gl_PointSize = uMaxSize * luminosity;
+  gl_PointSize = uMaxSize * luminosity * mask;
   vPosition = gl_Position.xyz;
 }
